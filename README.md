@@ -1,6 +1,6 @@
 # Modelo Preditivo de Risco de Inadimplência
 
-Projeto desenvolvido para a disciplina de Engenharia de Prompt e Fundamentos de Inteligência Artificial — UniAnchieta 2026.
+Projeto desenvolvido para a disciplina de Engenharia de Prompt e Fundamentos de Inteligência Artificial
 
 ## O que é
 
