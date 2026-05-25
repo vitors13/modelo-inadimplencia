@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Risco de Inadimplência</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F7F8FA;
+  --surface: #FFFFFF;
+  --border: #E4E7EC;
+  --text: #101828;
+  --muted: #667085;
+  --hint: #98A2B3;
+  --red: #D92D20; --red-bg: #FEF3F2; --red-bd: #FDA29B;
+  --amber: #B54708; --amber-bg: #FFFAEB; --amber-bd: #FEC84B;
+  --yellow: #854A0E; --yellow-bg: #FEFCE8; --yellow-bd: #FDE047;
+  --green: #027A48; --green-bg: #ECFDF3; --green-bd: #6CE9A6;
+  --blue: #1D4ED8; --blue-bg: #EFF6FF; --blue-bd: #93C5FD;
+  --purple: #5B21B6; --purple-bg: #F5F3FF; --purple-bd: #C4B5FD;
+  --sidebar-w: 220px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; }
+
+.sidebar {
+  width: var(--sidebar-w); flex-shrink: 0; background: var(--text);
+  display: flex; flex-direction: column; padding: 0; position: sticky; top: 0; height: 100vh;
+}
+.sidebar-logo { padding: 20px 20px 16px; border-bottom: 1px solid rgba(255,255,255,.1); }
+.logo-title { font-size: 14px; font-weight: 600; color: #fff; line-height: 1.3; }
+.logo-sub { font-size: 11px; color: rgba(255,255,255,.4); margin-top: 2px; }
+.nav { padding: 16px 12px; flex: 1; }
+.nav-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,.3); letter-spacing: .1em; text-transform: uppercase; padding: 0 8px; margin-bottom: 6px; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px; padding: 9px 10px;
+  border-radius: 8px; cursor: pointer; margin-bottom: 2px;
+  font-size: 13px; color: rgba(255,255,255,.55); font-weight: 400;
+  transition: background .15s, color .15s;
+}
+.nav-item:hover { background: rgba(255,255,255,.08); color: rgba(255,255,255,.9); }
+.nav-item.active { background: rgba(255,255,255,.12); color: #fff; font-weight: 500; }
+.nav-item .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.nav-badge { margin-left: auto; font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 20px; background: rgba(255,255,255,.12); color: rgba(255,255,255,.7); }
+.sidebar-footer { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,.1); }
+.sidebar-meta { font-size: 11px; color: rgba(255,255,255,.3); line-height: 1.6; }
+
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.topbar {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 14px 28px; display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+}
+.topbar-title { font-size: 15px; font-weight: 600; }
+.topbar-sub { font-size: 12px; color: var(--muted); margin-left: 4px; }
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.btn-refresh {
+  font-size: 12px; font-weight: 500; padding: 7px 14px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--surface); cursor: pointer; color: var(--muted);
+  transition: all .15s;
+}
+.btn-refresh:hover { background: var(--bg); color: var(--text); }
+.btn-export {
+  font-size: 12px; font-weight: 500; padding: 7px 14px; border-radius: 8px;
+  border: none; background: var(--text); cursor: pointer; color: #fff;
+  transition: opacity .15s;
+}
+.btn-export:hover { opacity: .85; }
+.update-badge { font-size: 11px; color: var(--green); background: var(--green-bg); padding: 3px 10px; border-radius: 20px; }
+
+.content { flex: 1; padding: 24px 28px; overflow-y: auto; }
+
+.page { display: none; }
+.page.active { display: block; }
+
+.section-title { font-size: 13px; font-weight: 600; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 16px; }
+
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+.kpi {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  padding: 18px 20px; position: relative; overflow: hidden;
+}
+.kpi-accent { position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 12px 12px 0 0; }
+.kpi-label { font-size: 12px; color: var(--muted); margin-bottom: 8px; font-weight: 500; }
+.kpi-val { font-size: 28px; font-weight: 600; line-height: 1; margin-bottom: 4px; }
+.kpi-sub { font-size: 11px; color: var(--hint); }
+
+.charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 24px; }
+.chart-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px;
+}
+.chart-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.chart-sub { font-size: 11px; color: var(--muted); margin-bottom: 16px; }
+
+.donut-wrap { display: flex; align-items: center; gap: 20px; }
+.donut-legend { display: flex; flex-direction: column; gap: 8px; }
+.leg-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.leg-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.leg-val { margin-left: auto; font-weight: 600; font-size: 13px; }
+
+.bar-item { margin-bottom: 10px; }
+.bar-header { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
+.bar-label { color: var(--muted); }
+.bar-pct { font-weight: 600; }
+.bar-track { height: 8px; background: var(--bg); border-radius: 20px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 20px; transition: width .5s ease; }
+
+.full-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 24px; }
+
+.filter-row { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+.filter-label { font-size: 12px; color: var(--muted); font-weight: 500; }
+.filter-btn {
+  font-size: 11px; font-weight: 500; padding: 5px 12px; border-radius: 20px;
+  border: 1px solid var(--border); background: var(--surface); cursor: pointer;
+  transition: all .15s; color: var(--muted);
+}
+.filter-btn:hover, .filter-btn.active { border-color: var(--text); color: var(--text); background: var(--bg); }
+.filter-btn.f-crit.active { border-color: var(--red); background: var(--red-bg); color: var(--red); }
+.filter-btn.f-alto.active { border-color: var(--amber); background: var(--amber-bg); color: var(--amber); }
+.filter-btn.f-med.active { border-color: var(--yellow); background: var(--yellow-bg); color: var(--yellow); }
+.filter-btn.f-baixo.active { border-color: var(--green); background: var(--green-bg); color: var(--green); }
+.count-badge { margin-left: auto; font-size: 12px; color: var(--muted); }
+
+table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+th { font-size: 11px; font-weight: 600; color: var(--hint); text-transform: uppercase; letter-spacing: .05em; padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+td { padding: 11px 12px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--bg); }
+
+.badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; }
+.badge-crit { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-bd); }
+.badge-alto { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-bd); }
+.badge-med  { background: var(--yellow-bg); color: var(--yellow); border: 1px solid var(--yellow-bd); }
+.badge-baixo{ background: var(--green-bg); color: var(--green); border: 1px solid var(--green-bd); }
+
+.score-wrap { display: flex; align-items: center; gap: 8px; }
+.score-num { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 13px; width: 28px; }
+.score-track { flex: 1; height: 5px; background: var(--bg); border-radius: 20px; overflow: hidden; }
+.score-fill { height: 100%; border-radius: 20px; }
+
+.parecer-cell { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+.seg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 24px; }
+
+.matrix-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.matrix-cell { border-radius: 10px; padding: 14px 16px; border: 1px solid; }
+.matrix-head { font-size: 11px; font-weight: 600; margin-bottom: 6px; }
+.matrix-body { font-size: 12px; line-height: 1.5; }
+
+.health-bar-wrap { margin-bottom: 10px; }
+.health-bar-hdr { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
+
+.empty-state { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-title">Risco de Inadimplência</div>
+    <div class="logo-sub">Dashboard operacional</div>
+  </div>
+  <div class="nav">
+    <div class="nav-label" style="margin-top:4px">Visões</div>
+    <div class="nav-item active" onclick="goPage('exec',this)">
+      <div class="dot" style="background:#378ADD"></div>
+      Visão executiva
+    </div>
+    <div class="nav-item" onclick="goPage('acao',this)">
+      <div class="dot" style="background:#D92D20"></div>
+      Lista de ação
+      <span class="nav-badge" id="badge-acao">58</span>
+    </div>
+    <div class="nav-item" onclick="goPage('seg',this)">
+      <div class="dot" style="background:#7C3AED"></div>
+      Segmentos
+    </div>
+  </div>
+  <div class="sidebar-footer">
+    <div class="sidebar-meta">Atualizado mensalmente<br>Fonte: scores_inadimplencia.xlsx<br>Modelo v1.0</div>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="topbar">
+    <div>
+      <span class="topbar-title" id="topbar-title">Visão executiva</span>
+      <span class="topbar-sub">150 clientes · maio 2026</span>
+    </div>
+    <div class="topbar-right">
+      <span class="update-badge">Atualizado hoje</span>
+      <button class="btn-refresh" onclick="animateRefresh()">Atualizar</button>
+      <button class="btn-export" onclick="alert('Exportando lista de ação...')">Exportar CSV</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- PÁGINA 1: EXECUTIVA -->
+    <div class="page active" id="pg-exec">
+
+      <div class="kpi-grid">
+        <div class="kpi">
+          <div class="kpi-accent" style="background:#378ADD"></div>
+          <div class="kpi-label">Total de clientes</div>
+          <div class="kpi-val" style="color:#1D4ED8">150</div>
+          <div class="kpi-sub">na base ativa</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-accent" style="background:#D92D20"></div>
+          <div class="kpi-label">Clientes críticos</div>
+          <div class="kpi-val" style="color:#D92D20">34</div>
+          <div class="kpi-sub">ação imediata</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-accent" style="background:#7C3AED"></div>
+          <div class="kpi-label">Score médio</div>
+          <div class="kpi-val" style="color:#7C3AED">38.8</div>
+          <div class="kpi-sub">de 0 a 100</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-accent" style="background:#B54708"></div>
+          <div class="kpi-label">Taxa de inadimplência</div>
+          <div class="kpi-val" style="color:#B54708">36.7%</div>
+          <div class="kpi-sub">da base atual</div>
+        </div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-title">Distribuição por faixa de risco</div>
+          <div class="chart-sub">150 clientes classificados</div>
+          <div class="donut-wrap">
+            <canvas id="donut" width="130" height="130"></canvas>
+            <div class="donut-legend">
+              <div class="leg-row"><div class="leg-dot" style="background:#D92D20"></div><span style="color:var(--muted)">Crítico</span><span class="leg-val" style="color:#D92D20">34</span></div>
+              <div class="leg-row"><div class="leg-dot" style="background:#B54708"></div><span style="color:var(--muted)">Alto</span><span class="leg-val" style="color:#B54708">24</span></div>
+              <div class="leg-row"><div class="leg-dot" style="background:#854A0E"></div><span style="color:var(--muted)">Médio</span><span class="leg-val" style="color:#854A0E">46</span></div>
+              <div class="leg-row"><div class="leg-dot" style="background:#027A48"></div><span style="color:var(--muted)">Baixo</span><span class="leg-val" style="color:#027A48">46</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-title">Inadimplência por plano</div>
+          <div class="chart-sub">taxa % de clientes inadimplentes</div>
+          <div id="bars-plano"></div>
+        </div>
+      </div>
+
+      <div class="full-card">
+        <div class="chart-title">Score médio por estado (top 8)</div>
+        <div class="chart-sub" style="margin-bottom:16px">quanto maior o score, maior o risco regional</div>
+        <div id="bars-estado"></div>
+      </div>
+    </div>
+
+    <!-- PÁGINA 2: LISTA DE AÇÃO -->
+    <div class="page" id="pg-acao">
+      <div class="full-card">
+        <div class="filter-row">
+          <span class="filter-label">Faixa:</span>
+          <button class="filter-btn f-crit active" onclick="toggleFilter('Crítico',this)">Crítico</button>
+          <button class="filter-btn f-alto active" onclick="toggleFilter('Alto',this)">Alto</button>
+          <button class="filter-btn f-med" onclick="toggleFilter('Médio',this)">Médio</button>
+          <button class="filter-btn f-baixo" onclick="toggleFilter('Baixo',this)">Baixo</button>
+          <span class="filter-label" style="margin-left:8px">Plano:</span>
+          <select id="sel-plano" onchange="renderTabela()" style="font-size:12px;padding:5px 8px;border-radius:8px;border:1px solid var(--border)">
+            <option value="">Todos</option>
+            <option>Plano Básico</option>
+            <option>Plano Pro</option>
+            <option>Plano Enterprise</option>
+          </select>
+          <span class="count-badge" id="count-label"></span>
+        </div>
+        <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:150px">CNPJ</th>
+              <th style="width:100px">Score</th>
+              <th style="width:90px">Faixa</th>
+              <th style="width:120px">Plano</th>
+              <th style="width:45px">UF</th>
+              <th style="width:60px">Health</th>
+              <th style="width:55px">Meses</th>
+              <th>Parecer da IA</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- PÁGINA 3: SEGMENTOS -->
+    <div class="page" id="pg-seg">
+
+      <div class="seg-grid">
+        <div class="chart-card">
+          <div class="chart-title">Score médio por plano</div>
+          <div class="chart-sub">quanto maior, mais risco naquele produto</div>
+          <div id="seg-plano"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Health Score × inadimplência</div>
+          <div class="chart-sub">clientes com health baixo inadimplem mais?</div>
+          <div id="seg-health"></div>
+        </div>
+      </div>
+
+      <div class="full-card">
+        <div class="chart-title">Matriz de risco — Health Score × Faixa de risco</div>
+        <div class="chart-sub" style="margin-bottom:16px">como cada combinação impacta a ação do CS</div>
+        <div class="matrix-grid">
+          <div class="matrix-cell" style="background:var(--green-bg);border-color:var(--green-bd)">
+            <div class="matrix-head" style="color:var(--green)">Health alto + Risco baixo</div>
+            <div class="matrix-body" style="color:#027A48">Rotina normal. Avaliar oportunidade de upsell ou expansão de contrato.</div>
+          </div>
+          <div class="matrix-cell" style="background:var(--amber-bg);border-color:var(--amber-bd)">
+            <div class="matrix-head" style="color:var(--amber)">Health alto + Risco alto</div>
+            <div class="matrix-body" style="color:#B54708">Alerta — cliente engajado mas fragilizado financeiramente. CS entra antes da cobrança.</div>
+          </div>
+          <div class="matrix-cell" style="background:var(--yellow-bg);border-color:var(--yellow-bd)">
+            <div class="matrix-head" style="color:var(--yellow)">Health baixo + Risco baixo</div>
+            <div class="matrix-body" style="color:#854A0E">Atenção ao engajamento — pode virar inadimplente se desengajar mais.</div>
+          </div>
+          <div class="matrix-cell" style="background:var(--red-bg);border-color:var(--red-bd)">
+            <div class="matrix-head" style="color:var(--red)">Health baixo + Risco alto</div>
+            <div class="matrix-body" style="color:#D92D20">Emergência — CS e Cobrança agem juntos. Prioridade máxima.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+const PLANOS  = ["Plano Básico","Plano Pro","Plano Enterprise"];
+const ESTADOS = ["SP","MG","RJ","RS","PR","BA","GO","SC","PE","CE","ES","MT"];
+const PARECERES = {
+  "Crítico": (hs,s,m) => `Score ${s} crítico. Piora recente e Health Score baixo (${hs}). Acionar cobrança imediatamente e avaliar renegociação com CS.`,
+  "Alto":    (hs,s,m) => `Risco elevado (score ${s}). Deterioração nos últimos meses. CS deve fazer contato proativo antes de escalar.`,
+  "Médio":   (hs,s,m) => `Histórico moderado (score ${s}). Comportamento estável. Monitorar mensalmente.`,
+  "Baixo":   (hs,s,m) => `Excelente histórico (score ${s}). Health Score saudável (${hs}). Avaliar oportunidade de upsell.`,
+};
+function faixa(s) { return s>=65?"Crítico":s>=40?"Alto":s>=20?"Médio":"Baixo"; }
+let seed=42;
+const rng=()=>{seed=(seed*1103515245+12345)&0x7fffffff;return seed/0x7fffffff};
+const ri=(a,b)=>Math.floor(rng()*(b-a+1))+a;
+const rc=(arr,ps)=>{let r=rng(),c=0;for(let i=0;i<arr.length;i++){c+=(ps?ps[i]:1/arr.length);if(r<c)return arr[i];}return arr[arr.length-1]};
+
+const CLIENTES=(()=>{
+  const rows=[];
+  for(let i=1;i<=150;i++){
+    const p=rc(["bom","medio","ruim"],[.5,.3,.2]);
+    const plano=rc(PLANOS,[.45,.38,.17]);
+    const estado=rc(ESTADOS);
+    const meses=ri(4,48);
+    let score,hs,inad;
+    if(p==="bom"){score=ri(3,31);hs=ri(65,99);inad="Não";}
+    else if(p==="medio"){score=ri(28,61);hs=ri(35,71);inad=rng()<.45?"Sim":"Não";}
+    else{score=ri(58,100);hs=ri(8,41);inad="Sim";}
+    const f=faixa(score);
+    rows.push({
+      cnpj:`${String(i).padStart(2,"0")}.${String(i*3).padStart(3,"0")}.${String(i*7).padStart(3,"0")}/0001-${String(i%99).padStart(2,"0")}`,
+      score,faixa:f,plano,estado,hs,meses,inad,
+      parecer:PARECERES[f](hs,score,meses)
+    });
+  }
+  return rows.sort((a,b)=>b.score-a.score);
+})();
+
+const FAIXA_COLORS = {
+  "Crítico":{"bg":"#FEF3F2","bd":"#FDA29B","txt":"#D92D20"},
+  "Alto":   {"bg":"#FFFAEB","bd":"#FEC84B","txt":"#B54708"},
+  "Médio":  {"bg":"#FEFCE8","bd":"#FDE047","txt":"#854A0E"},
+  "Baixo":  {"bg":"#ECFDF3","bd":"#6CE9A6","txt":"#027A48"},
+};
+const FAIXA_FILL = {"Crítico":"#D92D20","Alto":"#B54708","Médio":"#CAAD24","Baixo":"#027A48"};
+function scoreColor(s){return s>=65?"#D92D20":s>=40?"#B54708":s>=20?"#CAAD24":"#027A48";}
+
+function goPage(id,el){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+  document.getElementById("pg-"+id).classList.add("active");
+  el.classList.add("active");
+  const titles={"exec":"Visão executiva","acao":"Lista de ação","seg":"Análise de segmentos"};
+  document.getElementById("topbar-title").textContent=titles[id];
+  if(id==="acao")renderTabela();
+  if(id==="seg")renderSeg();
+}
+
+let activeFilters=new Set(["Crítico","Alto"]);
+function toggleFilter(f,btn){
+  if(activeFilters.has(f))activeFilters.delete(f);
+  else activeFilters.add(f);
+  btn.classList.toggle("active");
+  renderTabela();
+}
+
+function renderTabela(){
+  const plano=document.getElementById("sel-plano").value;
+  let rows=CLIENTES.filter(c=>activeFilters.has(c.faixa));
+  if(plano)rows=rows.filter(c=>c.plano===plano);
+  document.getElementById("count-label").textContent=`${rows.length} clientes`;
+  document.getElementById("badge-acao").textContent=CLIENTES.filter(c=>["Crítico","Alto"].includes(c.faixa)).length;
+  const fc=FAIXA_COLORS;
+  document.getElementById("tbody").innerHTML=rows.map(c=>`
+    <tr>
+      <td style="font-family:'DM Mono',monospace;font-size:11px">${c.cnpj}</td>
+      <td>
+        <div class="score-wrap">
+          <span class="score-num" style="color:${scoreColor(c.score)}">${c.score}</span>
+          <div class="score-track"><div class="score-fill" style="width:${c.score}%;background:${scoreColor(c.score)}"></div></div>
+        </div>
+      </td>
+      <td><span class="badge badge-${c.faixa==="Crítico"?"crit":c.faixa==="Alto"?"alto":c.faixa==="Médio"?"med":"baixo"}">${c.faixa}</span></td>
+      <td style="font-size:12px;color:var(--muted)">${c.plano}</td>
+      <td style="font-weight:500">${c.estado}</td>
+      <td style="font-weight:500;color:${c.hs<40?"#D92D20":c.hs<70?"#B54708":"#027A48"}">${c.hs}</td>
+      <td style="color:var(--muted)">${c.meses}m</td>
+      <td class="parecer-cell">${c.parecer}</td>
+    </tr>`).join("");
+}
+
+function barGroup(containerId,items,maxVal,colorFn){
+  document.getElementById(containerId).innerHTML=items.map(([lbl,val])=>`
+    <div class="bar-item">
+      <div class="bar-header"><span class="bar-label">${lbl}</span><span class="bar-pct" style="color:${colorFn(val)}">${Math.round(val)}${val<=100?"%":""}</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(val/maxVal*100)}%;background:${colorFn(val)}"></div></div>
+    </div>`).join("");
+}
+
+function initDonut(){
+  const ctx=document.getElementById("donut").getContext("2d");
+  new Chart(ctx,{type:"doughnut",
+    data:{datasets:[{data:[34,24,46,46],backgroundColor:["#D92D20","#B54708","#CAAD24","#027A48"],borderWidth:0,hoverOffset:4}]},
+    options:{cutout:"65%",plugins:{legend:{display:false},tooltip:{
+      callbacks:{label:ctx=>`${["Crítico","Alto","Médio","Baixo"][ctx.dataIndex]}: ${ctx.parsed} clientes`}}},
+      responsive:false}
+  });
+}
+
+function initBarsPlano(){
+  const grp={};
+  CLIENTES.forEach(c=>{if(!grp[c.plano])grp[c.plano]={t:0,i:0};grp[c.plano].t++;if(c.inad==="Sim")grp[c.plano].i++;});
+  const items=Object.entries(grp).map(([k,v])=>[k,Math.round(v.i/v.t*100)]);
+  barGroup("bars-plano",items,100,v=>v>=40?"#D92D20":v>=25?"#B54708":"#027A48");
+}
+
+function initBarsEstado(){
+  const grp={};
+  CLIENTES.forEach(c=>{if(!grp[c.estado])grp[c.estado]={t:0,s:0};grp[c.estado].t++;grp[c.estado].s+=c.score;});
+  const items=Object.entries(grp).map(([k,v])=>[k,Math.round(v.s/v.t)]).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  barGroup("bars-estado",items,100,v=>v>=65?"#D92D20":v>=40?"#B54708":v>=20?"#CAAD24":"#027A48");
+}
+
+function renderSeg(){
+  const grpP={};
+  CLIENTES.forEach(c=>{if(!grpP[c.plano])grpP[c.plano]={t:0,s:0};grpP[c.plano].t++;grpP[c.plano].s+=c.score;});
+  const itemsP=Object.entries(grpP).map(([k,v])=>[k,Math.round(v.s/v.t)]);
+  barGroup("seg-plano",itemsP,100,v=>v>=40?"#D92D20":"#378ADD");
+
+  const bands=[["0–33 (Crítico)",0,33],["34–66 (Atenção)",34,66],["67–100 (Saudável)",67,100]];
+  const itemsH=bands.map(([lbl,lo,hi])=>{
+    const g=CLIENTES.filter(c=>c.hs>=lo&&c.hs<=hi);
+    return [lbl,g.length?Math.round(g.filter(c=>c.inad==="Sim").length/g.length*100):0];
+  });
+  document.getElementById("seg-health").innerHTML=itemsH.map(([lbl,val])=>`
+    <div class="health-bar-wrap">
+      <div class="health-bar-hdr"><span style="color:var(--muted);font-size:12px">${lbl}</span><span style="font-weight:600;font-size:12px;color:${val>=50?"#D92D20":val>=25?"#B54708":"#027A48"}">${val}%</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${val}%;background:${val>=50?"#D92D20":val>=25?"#B54708":"#027A48"}"></div></div>
+    </div>`).join("");
+}
+
+function animateRefresh(){
+  const btn=event.target;
+  btn.textContent="Atualizando...";
+  btn.disabled=true;
+  setTimeout(()=>{btn.textContent="Atualizar";btn.disabled=false;},1200);
+}
+
+initDonut();
+initBarsPlano();
+initBarsEstado();
+renderTabela();
+</script>
+</body>
+</html>
